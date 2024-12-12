@@ -1,2 +1,3 @@
 # cashmoney-rs
-Library for safe monetary calculations
+
+Rust library for safe monetary calculations.

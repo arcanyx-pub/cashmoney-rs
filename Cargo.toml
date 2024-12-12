@@ -1,0 +1,19 @@
+[package]
+name = "cashmoney"
+authors = ["Joe Dahlquist <joe@arcanyx.com>"]
+description = "Library for safe monetary calculations"
+documentation = "https://docs.rs/cashmoney"
+edition = "2021"
+homepage = "https://github.com/arcanyx-pub/cashmoney-rs"
+keywords = ["money", "currency"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/arcanyx-pub/cashmoney-rs"
+version = "0.1.0"
+
+[dependencies]
+rust_decimal = "1.36.0"
+rust_decimal_macros = "1.36.0"
+
+[dev-dependencies]
+expecting = "0.6.0"
