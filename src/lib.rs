@@ -1,14 +1,11 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! Cashmoney is a library for expressing monetary values and performing safe
+//! monetary calculations suitable for financial applications.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+mod currency;
+mod fractional_money;
+mod macros;
+mod money;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use crate::currency::{Currency, UnknownCurrencyError};
+pub use crate::fractional_money::FractionalMoney;
+pub use crate::money::{Error, Money};
