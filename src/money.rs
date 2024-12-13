@@ -1,9 +1,11 @@
+use crate::currency;
 use crate::currency::Currency;
 use crate::error::Error;
 use crate::fractional_money::FractionalMoney;
 use rust_decimal::Decimal;
 use std::fmt::{Display, Formatter};
-use std::ops::{Add, Div, Mul, Sub};
+use std::iter;
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 /// A monetary value in a certain currency with a valid denomination, e.g., 13.37 USD but not
 /// 1.337 USD.
@@ -17,13 +19,19 @@ pub struct Money {
 impl Money {
     /// Creates a new, validated, normalized monetary value. The given decimal must be a valid
     /// representation for the given currency, or else an InvalidMoneyValue error will be returned.
-    pub fn new(value: Decimal, currency: Currency) -> Result<Self, Error> {
-        let normed_amt = validate_and_normalize(value, currency)?;
+    ///
+    /// `currency` cannot be `Currency::Zero`; you should instead specify a real currency.
+    pub fn new(amount: Decimal, currency: Currency) -> Result<Self, Error> {
+        let normed_amt = validate_and_normalize(amount, currency)?;
 
         Ok(Money {
             currency,
             amount: normed_amt,
         })
+    }
+
+    pub(crate) fn new_unchecked(amount: Decimal, currency: Currency) -> Self {
+        Money { currency, amount }
     }
 
     /// Returns the decimal amount. This value is guaranteed to be valid and normalized based on its
@@ -41,11 +49,8 @@ impl Money {
     /// Attempts to add another monetary value to this one. Returns an error if the currencies do
     /// not match.
     pub fn try_add(&self, rhs: &Self) -> Result<Self, Error> {
-        if self.currency != rhs.currency {
-            return Err(Error::MismatchedCurrency);
-        }
         Ok(Self {
-            currency: self.currency,
+            currency: currency::combine_currency(self.currency, rhs.currency)?,
             amount: self.amount + rhs.amount,
         })
     }
@@ -53,13 +58,21 @@ impl Money {
     /// Attempts to subtract another monetary value from this one. Returns an error if the
     /// currencies do not match.
     pub fn try_subtract(&self, rhs: &Self) -> Result<Self, Error> {
-        if self.currency != rhs.currency {
-            return Err(Error::MismatchedCurrency);
-        }
         Ok(Self {
-            currency: self.currency,
+            currency: currency::combine_currency(self.currency, rhs.currency)?,
             amount: self.amount - rhs.amount,
         })
+    }
+}
+
+/// Implementing `Default` is useful for summing iterators and other cases where a default
+/// zero-value is required.
+impl Default for Money {
+    fn default() -> Self {
+        Self {
+            amount: Decimal::default(),
+            currency: Currency::Zero,
+        }
     }
 }
 
@@ -77,11 +90,23 @@ impl Add for Money {
     }
 }
 
+impl AddAssign for Money {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = self.add(rhs);
+    }
+}
+
 impl Sub for Money {
     type Output = Money;
 
     fn sub(self, rhs: Self) -> Self::Output {
         self.try_subtract(&rhs).unwrap()
+    }
+}
+
+impl SubAssign for Money {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = self.sub(rhs);
     }
 }
 
@@ -103,8 +128,27 @@ impl Div<Decimal> for Money {
     }
 }
 
+impl Neg for Money {
+    type Output = Money;
+
+    fn neg(self) -> Self::Output {
+        Self {
+            amount: self.amount.neg(),
+            currency: self.currency,
+        }
+    }
+}
+
+/// If the iterator is empty, then the special `Zero` currency will be the result.
+impl iter::Sum for Money {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Default::default(), Add::add)
+    }
+}
+
 fn validate_and_normalize(amt: Decimal, currency: Currency) -> Result<Decimal, Error> {
     match currency {
+        Currency::Zero => Err(Error::ZeroCurrencyUsedUnnecessarily),
         Currency::USD | Currency::CAD => {
             let scale = amt.scale();
             // We don't allow scale=1 since it is unconventional and likely indicates the calling
@@ -264,6 +308,14 @@ mod tests {
     }
 
     #[test]
+    fn add_assign() -> Result<()> {
+        let mut a = usd!(1);
+        a += usd!(68);
+        expect_eq!(a, usd!(69));
+        Ok(())
+    }
+
+    #[test]
     fn subtract__matching_currency() -> Result<()> {
         expect_eq!(usd!(1) - usd!(2.99), usd!(-1.99));
         expect_eq!(usd!(1) - usd!(-2.99), usd!(3.99));
@@ -285,6 +337,14 @@ mod tests {
     }
 
     #[test]
+    fn sub_assign() -> Result<()> {
+        let mut a = usd!(1);
+        a -= usd!(68);
+        expect_eq!(a, usd!(-67));
+        Ok(())
+    }
+
+    #[test]
     fn multiply() -> Result<()> {
         let product = usd!(2.23) * dec!(2);
         expect_eq!(product.round(), usd!(4.46));
@@ -295,6 +355,13 @@ mod tests {
     fn divide() -> Result<()> {
         let quotient = usd!(2.23) / dec!(2);
         expect_eq!(quotient.round(), usd!(1.12));
+        Ok(())
+    }
+
+    #[test]
+    fn neg() -> Result<()> {
+        let a = usd!(1);
+        expect_eq!(-a, usd!(-1));
         Ok(())
     }
 }
