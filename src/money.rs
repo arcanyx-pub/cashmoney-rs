@@ -1,4 +1,5 @@
 use crate::currency::Currency;
+use crate::error::Error;
 use crate::fractional_money::FractionalMoney;
 use rust_decimal::Decimal;
 use std::fmt::{Display, Formatter};
@@ -11,15 +12,6 @@ pub struct Money {
     /// The validated and normalized value based on `currency`.
     value: Decimal,
     currency: Currency,
-}
-
-/// Error type for the library.
-#[derive(Clone, Debug, PartialEq)]
-pub enum Error {
-    /// The value provided is not valid for the given currency.
-    InvalidMoneyValue(String),
-    /// A mathematical operation was attempted on monetary values of different currencies.
-    MismatchedCurrency,
 }
 
 impl Money {

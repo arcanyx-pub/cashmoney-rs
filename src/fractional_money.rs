@@ -1,5 +1,6 @@
 use crate::currency::Currency;
-use crate::money::{Error, Money};
+use crate::error::Error;
+use crate::money::Money;
 use rust_decimal::{Decimal, RoundingStrategy};
 use std::ops::{Add, Div, Mul, Sub};
 
