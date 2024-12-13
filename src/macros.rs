@@ -1,17 +1,17 @@
-/// Creates Money of the given value with USD currency. Example: `usd!(13.37)`.
+/// Creates Money of the given amount with USD currency. Example: `usd!(13.37)`.
 #[macro_export]
 macro_rules! usd {
-    ( $value:expr ) => {{
-        let val = rust_decimal_macros::dec!($value);
+    ( $amount:expr ) => {{
+        let val = rust_decimal_macros::dec!($amount);
         $crate::Money::new(val, $crate::Currency::USD).unwrap()
     }};
 }
 
-/// Creates Money of the given value with CAD currency. Example: `cad!(13.37)`.
+/// Creates Money of the given amount with CAD currency. Example: `cad!(13.37)`.
 #[macro_export]
 macro_rules! cad {
-    ( $value:expr ) => {{
-        let val = rust_decimal_macros::dec!($value);
+    ( $amount:expr ) => {{
+        let val = rust_decimal_macros::dec!($amount);
         $crate::Money::new(val, $crate::Currency::CAD).unwrap()
     }};
 }
