@@ -8,15 +8,15 @@ use std::ops::{Add, Div, Mul, Sub};
 /// 1.337 USD.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FractionalMoney {
-    /// The (possibly) fractional value, which may or may not be a valid denomination of the
+    /// The (possibly) fractional amount, which may or may not be a valid denomination of the
     /// currency.
-    value: Decimal,
+    amount: Decimal,
     currency: Currency,
 }
 
 impl FractionalMoney {
-    pub fn new(value: Decimal, currency: Currency) -> Self {
-        Self { value, currency }
+    pub fn new(amount: Decimal, currency: Currency) -> Self {
+        Self { amount, currency }
     }
     /// Attempts to add another monetary value to this one. Returns an error if the currencies do
     /// not match.
@@ -26,7 +26,7 @@ impl FractionalMoney {
         }
         Ok(Self {
             currency: self.currency,
-            value: self.value + rhs.value,
+            amount: self.amount + rhs.amount,
         })
     }
 
@@ -38,7 +38,7 @@ impl FractionalMoney {
         }
         Ok(Self {
             currency: self.currency,
-            value: self.value - rhs.value,
+            amount: self.amount - rhs.amount,
         })
     }
 
@@ -47,7 +47,7 @@ impl FractionalMoney {
     pub fn round(&self) -> Money {
         let precision = self.currency.max_precision();
         let mut rounded = self
-            .value
+            .amount
             .round_dp_with_strategy(precision, RoundingStrategy::MidpointNearestEven);
         rounded.rescale(precision);
 
@@ -59,7 +59,7 @@ impl FractionalMoney {
     pub fn round_up(&self) -> Money {
         let precision = self.currency.max_precision();
         let mut rounded = self
-            .value
+            .amount
             .round_dp_with_strategy(precision, RoundingStrategy::MidpointAwayFromZero);
         rounded.rescale(precision);
 
@@ -71,7 +71,7 @@ impl FractionalMoney {
 impl From<Money> for FractionalMoney {
     fn from(money: Money) -> Self {
         FractionalMoney {
-            value: money.value(),
+            amount: money.amount(),
             currency: money.currency(),
         }
     }
@@ -98,7 +98,7 @@ impl Mul<Decimal> for FractionalMoney {
 
     fn mul(self, scalar: Decimal) -> Self::Output {
         Self {
-            value: self.value * scalar,
+            amount: self.amount * scalar,
             currency: self.currency,
         }
     }
@@ -109,7 +109,7 @@ impl Div<Decimal> for FractionalMoney {
 
     fn div(self, scalar: Decimal) -> Self::Output {
         Self {
-            value: self.value / scalar,
+            amount: self.amount / scalar,
             currency: self.currency,
         }
     }

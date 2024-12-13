@@ -8,7 +8,7 @@ fn basic_calculations() -> Result<()> {
     let a = usd!(13.37);
     expect_eq!(a.to_string(), "13.37 USD");
     expect_eq!(a.currency(), Currency::USD);
-    expect_eq!(a.value().to_string(), "13.37");
+    expect_eq!(a.amount().to_string(), "13.37");
 
     let double_a = a * dec!(2);
     expect_eq!(double_a.round().to_string(), "26.74 USD");

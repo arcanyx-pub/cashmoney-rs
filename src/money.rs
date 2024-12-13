@@ -9,8 +9,8 @@ use std::ops::{Add, Div, Mul, Sub};
 /// 1.337 USD.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Money {
-    /// The validated and normalized value based on `currency`.
-    value: Decimal,
+    /// The validated and normalized amount based on `currency`.
+    amount: Decimal,
     currency: Currency,
 }
 
@@ -18,20 +18,20 @@ impl Money {
     /// Creates a new, validated, normalized monetary value. The given decimal must be a valid
     /// representation for the given currency, or else an InvalidMoneyValue error will be returned.
     pub fn new(value: Decimal, currency: Currency) -> Result<Self, Error> {
-        let normed_value = validate_and_normalize(value, currency)?;
+        let normed_amt = validate_and_normalize(value, currency)?;
 
         Ok(Money {
             currency,
-            value: normed_value,
+            amount: normed_amt,
         })
     }
 
-    /// Returns the decimal value. This value is guaranteed to be valid and normalized based on its
+    /// Returns the decimal amount. This value is guaranteed to be valid and normalized based on its
     /// currency, and calling `to_string()` will produce a valid string representation.
     /// Normalization includes using the smallest conventional denomination (i.e., the maximum
     /// number of decimal places for the currency), so US$1 will become `dec!(1.00)` here.
-    pub fn value(&self) -> Decimal {
-        self.value
+    pub fn amount(&self) -> Decimal {
+        self.amount
     }
 
     pub fn currency(&self) -> Currency {
@@ -46,7 +46,7 @@ impl Money {
         }
         Ok(Self {
             currency: self.currency,
-            value: self.value + rhs.value,
+            amount: self.amount + rhs.amount,
         })
     }
 
@@ -58,14 +58,14 @@ impl Money {
         }
         Ok(Self {
             currency: self.currency,
-            value: self.value - rhs.value,
+            amount: self.amount - rhs.amount,
         })
     }
 }
 
 impl Display for Money {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {:?}", self.value, self.currency)
+        write!(f, "{} {:?}", self.amount, self.currency)
     }
 }
 
@@ -103,19 +103,19 @@ impl Div<Decimal> for Money {
     }
 }
 
-fn validate_and_normalize(value: Decimal, currency: Currency) -> Result<Decimal, Error> {
+fn validate_and_normalize(amt: Decimal, currency: Currency) -> Result<Decimal, Error> {
     match currency {
         Currency::USD | Currency::CAD => {
-            let scale = value.scale();
+            let scale = amt.scale();
             // We don't allow scale=1 since it is unconventional and likely indicates the calling
             // code has a bug.
             if scale != 0 && scale != 2 {
                 return Err(Error::InvalidMoneyValue(format!(
-                    "expected 0 or 2 decimal places for {currency:?}, but '{value}' has {scale}"
+                    "expected 0 or 2 decimal places for {currency:?}, but '{amt}' has {scale}"
                 )));
             }
             // Normalize to 2 decimal places.
-            let mut value = value;
+            let mut value = amt;
             value.rescale(2);
 
             Ok(value)
@@ -136,19 +136,19 @@ mod tests {
     fn new__usd__2_decimals() -> Result<()> {
         let a = expect_ok!(Money::new(dec!(0.00), Currency::USD));
         expect_eq!(a.to_string(), "0.00 USD");
-        expect_eq!(a.value().to_string(), "0.00");
+        expect_eq!(a.amount().to_string(), "0.00");
 
         let a = expect_ok!(Money::new(dec!(1.00), Currency::USD));
         expect_eq!(a.to_string(), "1.00 USD");
-        expect_eq!(a.value().to_string(), "1.00");
+        expect_eq!(a.amount().to_string(), "1.00");
 
         let a = expect_ok!(Money::new(dec!(-1.00), Currency::USD));
         expect_eq!(a.to_string(), "-1.00 USD");
-        expect_eq!(a.value().to_string(), "-1.00");
+        expect_eq!(a.amount().to_string(), "-1.00");
 
         let a = expect_ok!(Money::new(dec!(13.37), Currency::USD));
         expect_eq!(a.to_string(), "13.37 USD");
-        expect_eq!(a.value().to_string(), "13.37");
+        expect_eq!(a.amount().to_string(), "13.37");
         Ok(())
     }
 
@@ -156,15 +156,15 @@ mod tests {
     fn new__usd__0_decimals() -> Result<()> {
         let a = expect_ok!(Money::new(dec!(0), Currency::USD));
         expect_eq!(a.to_string(), "0.00 USD");
-        expect_eq!(a.value().to_string(), "0.00");
+        expect_eq!(a.amount().to_string(), "0.00");
 
         let a = expect_ok!(Money::new(dec!(1), Currency::USD));
         expect_eq!(a.to_string(), "1.00 USD");
-        expect_eq!(a.value().to_string(), "1.00");
+        expect_eq!(a.amount().to_string(), "1.00");
 
         let a = expect_ok!(Money::new(dec!(-1), Currency::USD));
         expect_eq!(a.to_string(), "-1.00 USD");
-        expect_eq!(a.value().to_string(), "-1.00");
+        expect_eq!(a.amount().to_string(), "-1.00");
         Ok(())
     }
 
@@ -191,19 +191,19 @@ mod tests {
     fn new__cad__2_decimals() -> Result<()> {
         let a = expect_ok!(Money::new(dec!(0.00), Currency::CAD));
         expect_eq!(a.to_string(), "0.00 CAD");
-        expect_eq!(a.value().to_string(), "0.00");
+        expect_eq!(a.amount().to_string(), "0.00");
 
         let a = expect_ok!(Money::new(dec!(1.00), Currency::CAD));
         expect_eq!(a.to_string(), "1.00 CAD");
-        expect_eq!(a.value().to_string(), "1.00");
+        expect_eq!(a.amount().to_string(), "1.00");
 
         let a = expect_ok!(Money::new(dec!(-1.00), Currency::CAD));
         expect_eq!(a.to_string(), "-1.00 CAD");
-        expect_eq!(a.value().to_string(), "-1.00");
+        expect_eq!(a.amount().to_string(), "-1.00");
 
         let a = expect_ok!(Money::new(dec!(13.37), Currency::CAD));
         expect_eq!(a.to_string(), "13.37 CAD");
-        expect_eq!(a.value().to_string(), "13.37");
+        expect_eq!(a.amount().to_string(), "13.37");
         Ok(())
     }
 
@@ -211,15 +211,15 @@ mod tests {
     fn new__cad__0_decimals() -> Result<()> {
         let a = expect_ok!(Money::new(dec!(0), Currency::CAD));
         expect_eq!(a.to_string(), "0.00 CAD");
-        expect_eq!(a.value().to_string(), "0.00");
+        expect_eq!(a.amount().to_string(), "0.00");
 
         let a = expect_ok!(Money::new(dec!(1), Currency::CAD));
         expect_eq!(a.to_string(), "1.00 CAD");
-        expect_eq!(a.value().to_string(), "1.00");
+        expect_eq!(a.amount().to_string(), "1.00");
 
         let a = expect_ok!(Money::new(dec!(-1), Currency::CAD));
         expect_eq!(a.to_string(), "-1.00 CAD");
-        expect_eq!(a.value().to_string(), "-1.00");
+        expect_eq!(a.amount().to_string(), "-1.00");
         Ok(())
     }
 
