@@ -7,7 +7,7 @@ mod fractional_money;
 mod macros;
 mod money;
 
-pub use crate::currency::{Currency, UnknownCurrencyError};
+pub use crate::currency::Currency;
 pub use crate::error::Error;
 pub use crate::fractional_money::FractionalMoney;
 pub use crate::money::Money;
