@@ -1,8 +1,10 @@
+use crate::currency;
 use crate::currency::Currency;
 use crate::error::Error;
 use crate::money::Money;
 use rust_decimal::{Decimal, RoundingStrategy};
-use std::ops::{Add, Div, Mul, Sub};
+use std::iter;
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 /// A monetary value in a certain currency with a possibly invalid denomination, e.g., 13.37 USD or
 /// 1.337 USD.
@@ -15,17 +17,19 @@ pub struct FractionalMoney {
 }
 
 impl FractionalMoney {
-    pub fn new(amount: Decimal, currency: Currency) -> Self {
-        Self { amount, currency }
+    /// Creates a new fractional amount of the given currency. The only restriction is that currency
+    /// cannot be `Zero`.
+    pub fn new(amount: Decimal, currency: Currency) -> Result<Self, Error> {
+        if let Currency::Zero = currency {
+            return Err(Error::ZeroCurrencyUsedUnnecessarily);
+        }
+        Ok(Self { amount, currency })
     }
     /// Attempts to add another monetary value to this one. Returns an error if the currencies do
     /// not match.
     pub fn try_add(&self, rhs: &Self) -> Result<Self, Error> {
-        if self.currency != rhs.currency {
-            return Err(Error::MismatchedCurrency);
-        }
         Ok(Self {
-            currency: self.currency,
+            currency: currency::combine_currency(self.currency, rhs.currency)?,
             amount: self.amount + rhs.amount,
         })
     }
@@ -37,7 +41,7 @@ impl FractionalMoney {
             return Err(Error::MismatchedCurrency);
         }
         Ok(Self {
-            currency: self.currency,
+            currency: currency::combine_currency(self.currency, rhs.currency)?,
             amount: self.amount - rhs.amount,
         })
     }
@@ -51,8 +55,7 @@ impl FractionalMoney {
             .round_dp_with_strategy(precision, RoundingStrategy::MidpointNearestEven);
         rounded.rescale(precision);
 
-        // Note that this should only panic if the library's internal invariants are broken.
-        Money::new(rounded, self.currency).unwrap()
+        Money::new_unchecked(rounded, self.currency)
     }
 
     /// Similar to `round()` except that the rounding method is "midpoint away from zero"
@@ -63,8 +66,7 @@ impl FractionalMoney {
             .round_dp_with_strategy(precision, RoundingStrategy::MidpointAwayFromZero);
         rounded.rescale(precision);
 
-        // Note that this should only panic if the library's internal invariants are broken.
-        Money::new(rounded, self.currency).unwrap()
+        Money::new_unchecked(rounded, self.currency)
     }
 }
 
@@ -77,6 +79,17 @@ impl From<Money> for FractionalMoney {
     }
 }
 
+/// Implementing `Default` is useful for summing iterators and other cases where a default
+/// zero-value is required.
+impl Default for FractionalMoney {
+    fn default() -> Self {
+        Self {
+            amount: Decimal::default(),
+            currency: Currency::Zero,
+        }
+    }
+}
+
 impl Add for FractionalMoney {
     type Output = FractionalMoney;
 
@@ -85,11 +98,23 @@ impl Add for FractionalMoney {
     }
 }
 
+impl AddAssign for FractionalMoney {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = self.add(rhs);
+    }
+}
+
 impl Sub for FractionalMoney {
     type Output = FractionalMoney;
 
     fn sub(self, rhs: Self) -> Self::Output {
         self.try_subtract(&rhs).unwrap()
+    }
+}
+
+impl SubAssign for FractionalMoney {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = self.sub(rhs);
     }
 }
 
@@ -104,6 +129,12 @@ impl Mul<Decimal> for FractionalMoney {
     }
 }
 
+impl MulAssign<Decimal> for FractionalMoney {
+    fn mul_assign(&mut self, rhs: Decimal) {
+        *self = self.mul(rhs);
+    }
+}
+
 impl Div<Decimal> for FractionalMoney {
     type Output = FractionalMoney;
 
@@ -112,6 +143,30 @@ impl Div<Decimal> for FractionalMoney {
             amount: self.amount / scalar,
             currency: self.currency,
         }
+    }
+}
+
+impl DivAssign<Decimal> for FractionalMoney {
+    fn div_assign(&mut self, rhs: Decimal) {
+        *self = self.div(rhs);
+    }
+}
+
+impl Neg for FractionalMoney {
+    type Output = FractionalMoney;
+
+    fn neg(self) -> Self::Output {
+        Self {
+            amount: self.amount.neg(),
+            currency: self.currency,
+        }
+    }
+}
+
+/// If the iterator is empty, then the special `Zero` currency will be the result.
+impl iter::Sum for FractionalMoney {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Default::default(), Add::add)
     }
 }
 
@@ -125,10 +180,10 @@ mod tests {
     use rust_decimal_macros::dec;
 
     fn usd(d: &str) -> FractionalMoney {
-        FractionalMoney::new(Decimal::from_str_exact(d).unwrap(), Currency::USD)
+        FractionalMoney::new(Decimal::from_str_exact(d).unwrap(), Currency::USD).unwrap()
     }
     fn cad(d: &str) -> FractionalMoney {
-        FractionalMoney::new(Decimal::from_str_exact(d).unwrap(), Currency::CAD)
+        FractionalMoney::new(Decimal::from_str_exact(d).unwrap(), Currency::CAD).unwrap()
     }
 
     #[test]
