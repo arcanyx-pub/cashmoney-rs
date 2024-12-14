@@ -1,4 +1,3 @@
-use crate::currency;
 use crate::currency::Currency;
 use crate::error::Error;
 use crate::fractional_money::FractionalMoney;
@@ -10,11 +9,10 @@ use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 /// A monetary value in a certain currency with a valid denomination, e.g., 13.37 USD but not
 /// 1.337 USD.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Money {
-    /// The validated and normalized amount based on `currency`.
-    amount: Decimal,
-    currency: Currency,
+    /// The validated and normalized FractionalMoney based on `currency`.
+    money: FractionalMoney,
 }
 
 impl Money {
@@ -26,13 +24,12 @@ impl Money {
         let normed_amt = validate_and_normalize(amount, currency)?;
 
         Ok(Money {
-            currency,
-            amount: normed_amt,
+            money: FractionalMoney::new(normed_amt, currency)?,
         })
     }
 
-    pub(crate) fn new_unchecked(amount: Decimal, currency: Currency) -> Self {
-        Money { currency, amount }
+    pub(crate) fn new_unchecked(money: FractionalMoney) -> Self {
+        Money { money }
     }
 
     /// Returns the decimal amount. This value is guaranteed to be valid and normalized based on its
@@ -40,19 +37,18 @@ impl Money {
     /// Normalization includes using the smallest conventional denomination (i.e., the maximum
     /// number of decimal places for the currency), so US$1 will become `dec!(1.00)` here.
     pub fn amount(&self) -> Decimal {
-        self.amount
+        self.money.amount()
     }
 
     pub fn currency(&self) -> Currency {
-        self.currency
+        self.money.currency()
     }
 
     /// Attempts to add another monetary value to this one. Returns an error if the currencies do
     /// not match.
     pub fn try_add(&self, rhs: &Self) -> Result<Self, Error> {
         Ok(Self {
-            currency: currency::combine_currency(self.currency, rhs.currency)?,
-            amount: self.amount + rhs.amount,
+            money: self.money.try_add(&rhs.money)?,
         })
     }
 
@@ -60,26 +56,20 @@ impl Money {
     /// currencies do not match.
     pub fn try_subtract(&self, rhs: &Self) -> Result<Self, Error> {
         Ok(Self {
-            currency: currency::combine_currency(self.currency, rhs.currency)?,
-            amount: self.amount - rhs.amount,
+            money: self.money.try_subtract(&rhs.money)?,
         })
     }
 }
 
-/// Implementing `Default` is useful for summing iterators and other cases where a default
-/// zero-value is required.
-impl Default for Money {
-    fn default() -> Self {
-        Self {
-            amount: Decimal::default(),
-            currency: Currency::Zero,
-        }
+impl From<Money> for FractionalMoney {
+    fn from(money: Money) -> Self {
+        money.money
     }
 }
 
 impl Display for Money {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {:?}", self.amount, self.currency)
+        write!(f, "{} {:?}", self.money.amount(), self.money.currency())
     }
 }
 
@@ -115,8 +105,7 @@ impl Mul<Decimal> for Money {
     type Output = FractionalMoney;
 
     fn mul(self, rhs: Decimal) -> Self::Output {
-        let frac: FractionalMoney = self.into();
-        frac * rhs
+        self.money * rhs
     }
 }
 
@@ -124,8 +113,7 @@ impl Div<Decimal> for Money {
     type Output = FractionalMoney;
 
     fn div(self, rhs: Decimal) -> Self::Output {
-        let frac: FractionalMoney = self.into();
-        frac / rhs
+        self.money / rhs
     }
 }
 
@@ -133,10 +121,7 @@ impl Neg for Money {
     type Output = Money;
 
     fn neg(self) -> Self::Output {
-        Self {
-            amount: self.amount.neg(),
-            currency: self.currency,
-        }
+        Self { money: -self.money }
     }
 }
 
@@ -149,10 +134,7 @@ impl iter::Sum for Money {
 
 impl Ord for Money {
     fn cmp(&self, other: &Self) -> Ordering {
-        if currency::combine_currency(self.currency, other.currency).is_err() {
-            panic!("tried to compare different types of currency")
-        }
-        self.amount.cmp(&other.amount)
+        self.money.cmp(&other.money)
     }
 }
 

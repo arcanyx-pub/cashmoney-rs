@@ -26,6 +26,15 @@ impl FractionalMoney {
         }
         Ok(Self { amount, currency })
     }
+
+    pub fn amount(&self) -> Decimal {
+        self.amount
+    }
+
+    pub fn currency(&self) -> Currency {
+        self.currency
+    }
+
     /// Attempts to add another monetary value to this one. Returns an error if the currencies do
     /// not match.
     pub fn try_add(&self, rhs: &Self) -> Result<Self, Error> {
@@ -56,7 +65,10 @@ impl FractionalMoney {
             .round_dp_with_strategy(precision, RoundingStrategy::MidpointNearestEven);
         rounded.rescale(precision);
 
-        Money::new_unchecked(rounded, self.currency)
+        Money::new_unchecked(Self {
+            amount: rounded,
+            currency: self.currency,
+        })
     }
 
     /// Similar to `round()` except that the rounding method is "midpoint away from zero"
@@ -67,16 +79,10 @@ impl FractionalMoney {
             .round_dp_with_strategy(precision, RoundingStrategy::MidpointAwayFromZero);
         rounded.rescale(precision);
 
-        Money::new_unchecked(rounded, self.currency)
-    }
-}
-
-impl From<Money> for FractionalMoney {
-    fn from(money: Money) -> Self {
-        FractionalMoney {
-            amount: money.amount(),
-            currency: money.currency(),
-        }
+        Money::new_unchecked(Self {
+            amount: rounded,
+            currency: self.currency,
+        })
     }
 }
 
