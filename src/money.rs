@@ -3,13 +3,14 @@ use crate::currency::Currency;
 use crate::error::Error;
 use crate::fractional_money::FractionalMoney;
 use rust_decimal::Decimal;
+use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 /// A monetary value in a certain currency with a valid denomination, e.g., 13.37 USD but not
 /// 1.337 USD.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Money {
     /// The validated and normalized amount based on `currency`.
     amount: Decimal,
@@ -143,6 +144,21 @@ impl Neg for Money {
 impl iter::Sum for Money {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Default::default(), Add::add)
+    }
+}
+
+impl Ord for Money {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if currency::combine_currency(self.currency, other.currency).is_err() {
+            panic!("tried to compare different types of currency")
+        }
+        self.amount.cmp(&other.amount)
+    }
+}
+
+impl PartialOrd for Money {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -363,5 +379,20 @@ mod tests {
         let a = usd!(1);
         expect_eq!(-a, usd!(-1));
         Ok(())
+    }
+
+    #[test]
+    fn compare() -> Result<()> {
+        expect!(usd!(1) < usd!(2));
+        expect!(usd!(2) > usd!(1));
+        expect!(usd!(2) >= usd!(1));
+        expect_eq!(usd!(2).min(usd!(1)), usd!(1));
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic]
+    fn compare_different_currencies() {
+        let _ = usd!(1) < cad!(2);
     }
 }
