@@ -1,7 +1,7 @@
 use crate::Error;
 
 /// Supported currencies, identified by their ISO 4217 code.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Currency {
     // Only valid when `amount` is 0. Used when constructing the default value for Money. Can be
     // added to or subtracted from any other currency, and can be divided or multiplied (which will

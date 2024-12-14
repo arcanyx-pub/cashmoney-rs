@@ -3,12 +3,13 @@ use crate::currency::Currency;
 use crate::error::Error;
 use crate::money::Money;
 use rust_decimal::{Decimal, RoundingStrategy};
+use std::cmp::Ordering;
 use std::iter;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 /// A monetary value in a certain currency with a possibly invalid denomination, e.g., 13.37 USD or
 /// 1.337 USD.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FractionalMoney {
     /// The (possibly) fractional amount, which may or may not be a valid denomination of the
     /// currency.
@@ -170,6 +171,21 @@ impl iter::Sum for FractionalMoney {
     }
 }
 
+impl Ord for FractionalMoney {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if currency::combine_currency(self.currency, other.currency).is_err() {
+            panic!("tried to compare different types of currency")
+        }
+        self.amount.cmp(&other.amount)
+    }
+}
+
+impl PartialOrd for FractionalMoney {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 #[cfg(test)]
 #[allow(non_snake_case)]
 mod tests {
@@ -323,5 +339,20 @@ mod tests {
     fn divide_resulting_in_non_terminating() -> Result<()> {
         expect_eq!(usd("1") / dec!(3), usd("0.3333333333333333333333333333"));
         Ok(())
+    }
+
+    #[test]
+    fn compare() -> Result<()> {
+        expect!(usd("1") < usd("2"));
+        expect!(usd("2") > usd("1"));
+        expect!(usd("2") >= usd("1"));
+        expect_eq!(usd("2").min(usd("1")), usd("1"));
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic]
+    fn compare_different_currencies() {
+        let _ = usd("1") < cad("2");
     }
 }
