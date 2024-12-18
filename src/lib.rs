@@ -6,6 +6,7 @@ mod error;
 mod fractional_money;
 mod macros;
 mod money;
+pub mod util;
 
 pub use crate::currency::Currency;
 pub use crate::error::Error;

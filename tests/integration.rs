@@ -1,4 +1,5 @@
 use anyhow::Result;
+use cashmoney::util::try_sum;
 use cashmoney::{cad, usd, Currency, Money};
 use expecting::*;
 use rust_decimal_macros::dec;
@@ -52,10 +53,10 @@ fn money_ops() -> Result<()> {
     expect_eq!(a, usd!(-2));
     expect_eq!(-a, usd!(2));
 
-    // let v: Vec<Money> = vec![usd!(1), usd!(2), usd!(0.99)];
-    // let sum: Money = v.into_iter().sum();
-    //
-    // expect_eq!(sum.amount(), dec!(3.99));
-    // expect_eq!(sum.currency(), Currency::USD);
+    let v: Vec<Money> = vec![usd!(1), usd!(2), usd!(0.99)];
+    let sum = expect_ok!(try_sum(&v, Currency::USD));
+
+    expect_eq!(sum.amount(), dec!(3.99));
+    expect_eq!(sum.currency(), Currency::USD);
     Ok(())
 }
