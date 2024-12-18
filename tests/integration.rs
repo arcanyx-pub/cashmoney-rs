@@ -52,10 +52,35 @@ fn money_ops() -> Result<()> {
     expect_eq!(a, usd!(-2));
     expect_eq!(-a, usd!(2));
 
-    // let v: Vec<Money> = vec![usd!(1), usd!(2), usd!(0.99)];
-    // let sum: Money = v.into_iter().sum();
-    //
-    // expect_eq!(sum.amount(), dec!(3.99));
-    // expect_eq!(sum.currency(), Currency::USD);
+    let v: Vec<Money> = vec![usd!(1), usd!(2), usd!(0.99)];
+    let sum: Money = v.into_iter().sum();
+
+    expect_eq!(sum.amount(), dec!(3.99));
+    expect_eq!(sum.currency(), Currency::USD);
+    Ok(())
+}
+
+#[test]
+fn special_zero_currency() -> Result<()> {
+    let mut a = Money::default();
+    expect_eq!(a.currency(), Currency::Zero);
+    expect_eq!(a.amount(), dec!(0));
+    expect_eq!((a * dec!(2)).round(), Money::default());
+
+    a += cad!(9.99);
+    expect_eq!(a, cad!(9.99));
+
+    a += Money::default();
+    expect_eq!(a, cad!(9.99));
+
+    let b = a * dec!(2);
+    expect_eq!(b.round(), cad!(19.98));
+
+    let v: Vec<Money> = vec![];
+    let sum: Money = v.into_iter().sum();
+
+    expect_eq!(sum.amount(), dec!(0));
+    expect_eq!(sum.currency(), Currency::Zero);
+
     Ok(())
 }
