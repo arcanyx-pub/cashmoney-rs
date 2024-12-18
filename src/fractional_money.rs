@@ -4,7 +4,6 @@ use crate::error::Error;
 use crate::money::Money;
 use rust_decimal::{Decimal, RoundingStrategy};
 use std::cmp::Ordering;
-use std::iter;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 /// A monetary value in a certain currency with a possibly invalid denomination, e.g., 13.37 USD or
@@ -21,9 +20,6 @@ impl FractionalMoney {
     /// Creates a new fractional amount of the given currency. The only restriction is that currency
     /// cannot be `Zero`.
     pub fn new(amount: Decimal, currency: Currency) -> Result<Self, Error> {
-        if let Currency::Zero = currency {
-            return Err(Error::ZeroCurrencyUsedUnnecessarily);
-        }
         Ok(Self { amount, currency })
     }
 
@@ -80,17 +76,6 @@ impl FractionalMoney {
             amount: rounded,
             currency: self.currency,
         })
-    }
-}
-
-/// Implementing `Default` is useful for summing iterators and other cases where a default
-/// zero-value is required.
-impl Default for FractionalMoney {
-    fn default() -> Self {
-        Self {
-            amount: Decimal::default(),
-            currency: Currency::Zero,
-        }
     }
 }
 
@@ -167,13 +152,6 @@ impl Neg for FractionalMoney {
     }
 }
 
-/// If the iterator is empty, then the special `Zero` currency will be the result.
-impl iter::Sum for FractionalMoney {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.fold(Default::default(), Add::add)
-    }
-}
-
 impl Ord for FractionalMoney {
     fn cmp(&self, other: &Self) -> Ordering {
         if currency::combine_currency(self.currency, other.currency).is_err() {
@@ -203,9 +181,6 @@ mod tests {
     }
     fn cad(d: &str) -> FractionalMoney {
         FractionalMoney::new(Decimal::from_str_exact(d).unwrap(), Currency::CAD).unwrap()
-    }
-    fn zero() -> FractionalMoney {
-        FractionalMoney::default()
     }
 
     #[test]
@@ -249,13 +224,6 @@ mod tests {
     }
 
     #[test]
-    fn add__zero_currency() -> Result<()> {
-        expect_eq!(usd("1") + zero(), usd("1"));
-        expect_eq!(zero() + usd("1"), usd("1"));
-        Ok(())
-    }
-
-    #[test]
     #[should_panic]
     fn add__mismatched_currencies__panics() {
         let _ = usd("1") + cad("2.99");
@@ -274,13 +242,6 @@ mod tests {
         expect_eq!(usd("1") - usd("2.12345"), usd("-1.12345"));
 
         expect_eq!(cad("1") - cad("-1"), cad("2"));
-        Ok(())
-    }
-
-    #[test]
-    fn subtract__zero_currency() -> Result<()> {
-        expect_eq!(usd("1") - zero(), usd("1"));
-        expect_eq!(zero() - usd("1"), usd("-1"));
         Ok(())
     }
 
