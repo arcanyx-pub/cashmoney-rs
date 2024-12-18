@@ -8,6 +8,10 @@ pub enum Error {
     InvalidMoneyValue(String),
     /// A mathematical operation was attempted on monetary values of different currencies.
     MismatchedCurrency,
+    /// `Money::new` was called with `Currency::Zero`. You should specify a real currency instead.
+    /// If you really want to create a zero-valued Money with `Zero` currency, use
+    /// `Money::default()` instead.
+    ZeroCurrencyUsedUnnecessarily,
 }
 
 impl fmt::Display for Error {
@@ -20,6 +24,12 @@ impl fmt::Display for Error {
                 write!(
                     f,
                     "A mathematical operation was attempted on values of different currencies"
+                )
+            }
+            Self::ZeroCurrencyUsedUnnecessarily => {
+                write!(
+                    f,
+                    "`Money::new` cannot be called with `Currency::Zero`. Use `Money::default()` instead."
                 )
             }
         }

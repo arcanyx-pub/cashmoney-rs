@@ -4,11 +4,12 @@ use crate::fractional_money::FractionalMoney;
 use rust_decimal::Decimal;
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
+use std::iter;
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 /// A monetary value in a certain currency with a valid denomination, e.g., 13.37 USD but not
 /// 1.337 USD.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Money {
     /// The validated and normalized FractionalMoney based on `currency`.
     money: FractionalMoney,
@@ -124,6 +125,13 @@ impl Neg for Money {
     }
 }
 
+/// If the iterator is empty, then the special `Zero` currency will be the result.
+impl iter::Sum for Money {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Default::default(), Add::add)
+    }
+}
+
 impl Ord for Money {
     fn cmp(&self, other: &Self) -> Ordering {
         self.money.cmp(&other.money)
@@ -138,6 +146,7 @@ impl PartialOrd for Money {
 
 fn validate_and_normalize(amt: Decimal, currency: Currency) -> Result<Decimal, Error> {
     match currency {
+        Currency::Zero => Err(Error::ZeroCurrencyUsedUnnecessarily),
         Currency::USD | Currency::CAD => {
             let scale = amt.scale();
             // We don't allow scale=1 since it is unconventional and likely indicates the calling
