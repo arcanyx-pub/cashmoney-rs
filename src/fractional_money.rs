@@ -47,9 +47,6 @@ impl FractionalMoney {
     /// Attempts to subtract another monetary value from this one. Returns an error if the
     /// currencies do not match.
     pub fn try_subtract(&self, rhs: &Self) -> Result<Self, Error> {
-        if self.currency != rhs.currency {
-            return Err(Error::MismatchedCurrency);
-        }
         Ok(Self {
             currency: currency::combine_currency(self.currency, rhs.currency)?,
             amount: self.amount - rhs.amount,
@@ -207,6 +204,9 @@ mod tests {
     fn cad(d: &str) -> FractionalMoney {
         FractionalMoney::new(Decimal::from_str_exact(d).unwrap(), Currency::CAD).unwrap()
     }
+    fn zero() -> FractionalMoney {
+        FractionalMoney::default()
+    }
 
     #[test]
     fn round() -> Result<()> {
@@ -249,6 +249,13 @@ mod tests {
     }
 
     #[test]
+    fn add__zero_currency() -> Result<()> {
+        expect_eq!(usd("1") + zero(), usd("1"));
+        expect_eq!(zero() + usd("1"), usd("1"));
+        Ok(())
+    }
+
+    #[test]
     #[should_panic]
     fn add__mismatched_currencies__panics() {
         let _ = usd("1") + cad("2.99");
@@ -267,6 +274,13 @@ mod tests {
         expect_eq!(usd("1") - usd("2.12345"), usd("-1.12345"));
 
         expect_eq!(cad("1") - cad("-1"), cad("2"));
+        Ok(())
+    }
+
+    #[test]
+    fn subtract__zero_currency() -> Result<()> {
+        expect_eq!(usd("1") - zero(), usd("1"));
+        expect_eq!(zero() - usd("1"), usd("-1"));
         Ok(())
     }
 
