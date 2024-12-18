@@ -16,14 +16,6 @@ macro_rules! cad {
     }};
 }
 
-/// Creates 0-valued money with the special `Zero` currency.
-#[macro_export]
-macro_rules! zero {
-    () => {{
-        $crate::Money::default()
-    }};
-}
-
 #[cfg(test)]
 #[allow(non_snake_case)]
 mod tests {
@@ -76,13 +68,5 @@ mod tests {
     #[should_panic]
     fn cad__3_decimals__panics() {
         cad!(0.123);
-    }
-
-    #[test]
-    fn zero() -> Result<()> {
-        let z = zero!();
-        expect_eq!(z.amount(), dec!(0));
-        expect_eq!(z.currency(), Currency::Zero);
-        Ok(())
     }
 }
