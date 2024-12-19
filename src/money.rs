@@ -169,7 +169,7 @@ fn validate_and_normalize(amt: Decimal, currency: Currency) -> Result<Decimal, E
 #[allow(non_snake_case)]
 mod tests {
     use super::*;
-    use crate::{cad, usd};
+    use crate::{cad, usd, zero};
     use anyhow::Result;
     use expecting::*;
     use rust_decimal_macros::dec;
@@ -294,6 +294,16 @@ mod tests {
     }
 
     #[test]
+    fn add__zero_currency() -> Result<()> {
+        expect_eq!(usd!(1) + zero!(), usd!(1));
+        expect_eq!((usd!(1) + zero!()).to_string(), "1.00 USD");
+
+        expect_eq!(zero!() + usd!(1), usd!(1));
+        expect_eq!((zero!() + usd!(1)).to_string(), "1.00 USD");
+        Ok(())
+    }
+
+    #[test]
     #[should_panic]
     fn add__mismatched_currencies__panics() {
         let _ = usd!(1) + cad!(2.99);
@@ -331,6 +341,16 @@ mod tests {
     #[test]
     fn try_subtract__mismatched_currency__returns_err() -> Result<()> {
         expect_err!(usd!(1).try_subtract(&cad!(1)));
+        Ok(())
+    }
+
+    #[test]
+    fn subtract__zero_currency() -> Result<()> {
+        expect_eq!(usd!(1) - zero!(), usd!(1));
+        expect_eq!((usd!(1) - zero!()).to_string(), "1.00 USD");
+
+        expect_eq!(zero!() - usd!(1), usd!(-1));
+        expect_eq!((zero!() - usd!(1)).to_string(), "-1.00 USD");
         Ok(())
     }
 

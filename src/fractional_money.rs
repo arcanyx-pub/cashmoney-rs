@@ -3,7 +3,7 @@ use crate::currency::Currency;
 use crate::error::Error;
 use crate::money::Money;
 use rust_decimal::{Decimal, RoundingStrategy};
-use std::cmp::Ordering;
+use std::cmp::{max, Ordering};
 use std::iter;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
@@ -38,19 +38,30 @@ impl FractionalMoney {
     /// Attempts to add another monetary value to this one. Returns an error if the currencies do
     /// not match.
     pub fn try_add(&self, rhs: &Self) -> Result<Self, Error> {
-        Ok(Self {
-            currency: currency::combine_currency(self.currency, rhs.currency)?,
-            amount: self.amount + rhs.amount,
-        })
+        let currency = currency::combine_currency(self.currency, rhs.currency)?;
+        let mut amount = self.amount + rhs.amount;
+        // Decimal has strange scale rules. For example:
+        //   `(dec!(0) + dec!(0.00)).to_string() == "0.00"
+        //   `(dec!(0.00) + dec!(0)).to_string() == "0"
+        //   `(dec!(1.50) + dec!(0)).to_string() == "1.50"
+        // This only becomes an issue when adding or subtracting the `Zero` currency, since it has
+        // zero decimal places, and when we are only using FractionalMoney as the inner value for
+        // Money, which we assume is scaled to the max for the given currency. Thus, we explicitly
+        // retain the max scale of the operands.
+        amount.rescale(max(self.amount.scale(), rhs.amount.scale()));
+
+        Ok(Self { currency, amount })
     }
 
     /// Attempts to subtract another monetary value from this one. Returns an error if the
     /// currencies do not match.
     pub fn try_subtract(&self, rhs: &Self) -> Result<Self, Error> {
-        Ok(Self {
-            currency: currency::combine_currency(self.currency, rhs.currency)?,
-            amount: self.amount - rhs.amount,
-        })
+        let currency = currency::combine_currency(self.currency, rhs.currency)?;
+        let mut amount = self.amount - rhs.amount;
+        // See implementation comments for `try_add`.
+        amount.rescale(max(self.amount.scale(), rhs.amount.scale()));
+
+        Ok(Self { currency, amount })
     }
 
     /// Round FractionalMoney to the maximum precision allowed by the currency and return a Money
