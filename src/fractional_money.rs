@@ -39,7 +39,10 @@ impl FractionalMoney {
     /// not match.
     pub fn try_add(&self, rhs: &Self) -> Result<Self, Error> {
         let currency = currency::combine_currency(self.currency, rhs.currency)?;
-        let mut amount = self.amount + rhs.amount;
+        let maybe_amount = self.amount.checked_add(rhs.amount);
+        let Some(mut amount) = maybe_amount else {
+            return Err(Error::Overflow);
+        };
         // Decimal has strange scale rules. For example:
         //   `(dec!(0) + dec!(0.00)).to_string() == "0.00"
         //   `(dec!(0.00) + dec!(0)).to_string() == "0"
@@ -57,7 +60,10 @@ impl FractionalMoney {
     /// currencies do not match.
     pub fn try_subtract(&self, rhs: &Self) -> Result<Self, Error> {
         let currency = currency::combine_currency(self.currency, rhs.currency)?;
-        let mut amount = self.amount - rhs.amount;
+        let maybe_amount = self.amount.checked_sub(rhs.amount);
+        let Some(mut amount) = maybe_amount else {
+            return Err(Error::Overflow);
+        };
         // See implementation comments for `try_add`.
         amount.rescale(max(self.amount.scale(), rhs.amount.scale()));
 

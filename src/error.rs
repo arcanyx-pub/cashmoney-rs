@@ -12,6 +12,8 @@ pub enum Error {
     /// If you really want to create a zero-valued Money with `Zero` currency, use
     /// `Money::default()` instead.
     ZeroCurrencyUsedUnnecessarily,
+    /// There was an overflow error in the underlying Decimal library.
+    Overflow,
 }
 
 impl fmt::Display for Error {
@@ -30,6 +32,12 @@ impl fmt::Display for Error {
                 write!(
                     f,
                     "`Money::new` cannot be called with `Currency::Zero`. Use `Money::default()` instead."
+                )
+            }
+            Self::Overflow => {
+                write!(
+                    f,
+                    "There was an overflow error in the underlying Decimal library."
                 )
             }
         }
