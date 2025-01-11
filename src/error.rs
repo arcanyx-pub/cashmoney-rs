@@ -6,7 +6,7 @@ use std::fmt::Formatter;
 pub enum Error {
     /// The amount provided is not valid for the given currency.
     InvalidMoneyValue(String),
-    /// Attempted to create (Fractional)Money with `Zero` currency but non-zero amount.
+    /// Attempted to create (Fractional)Money with `ZeroNone` currency but non-zero amount.
     ZeroCurrencyWithNonZeroAmount,
     /// A mathematical operation was attempted on monetary values of different currencies.
     MismatchedCurrency,
@@ -21,7 +21,7 @@ impl fmt::Display for Error {
                 write!(f, "Invalid money value for the given currency: {details}")
             }
             Self::ZeroCurrencyWithNonZeroAmount => {
-                write!(f, "Attempted to use non-zero amount for Zero currency.")
+                write!(f, "Attempted to use non-zero amount for ZeroNone currency.")
             }
             Self::MismatchedCurrency => {
                 write!(

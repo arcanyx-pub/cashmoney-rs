@@ -6,7 +6,7 @@ pub enum Currency {
     // Only valid when `amount` is 0. Used when constructing the default value for Money. Can be
     // added to or subtracted from any other currency, and can be divided or multiplied (which will
     // of course result in a zero value).
-    Zero,
+    ZeroNone,
     // United States Dollar
     USD,
     // Canadian Dollar
@@ -16,7 +16,7 @@ pub enum Currency {
 impl Currency {
     pub fn max_precision(&self) -> u32 {
         match self {
-            Currency::Zero => 0,
+            Currency::ZeroNone => 0,
             Currency::USD => 2,
             Currency::CAD => 2,
         }
@@ -24,14 +24,14 @@ impl Currency {
 }
 
 /// Returns the result of operating on two currencies. Generally, they should be the same, or else
-/// a MismatchedCurrency error is returned. The `Zero` Currency is an exception; it takes on the
+/// a MismatchedCurrency error is returned. The `ZeroNone` Currency is an exception; it takes on the
 /// currency of the other operand.
 pub fn combine_currency(lhs: Currency, rhs: Currency) -> Result<Currency, Error> {
     let currency = if lhs == rhs {
         lhs
-    } else if lhs == Currency::Zero {
+    } else if lhs == Currency::ZeroNone {
         rhs
-    } else if rhs == Currency::Zero {
+    } else if rhs == Currency::ZeroNone {
         lhs
     } else {
         return Err(Error::MismatchedCurrency);
@@ -63,21 +63,21 @@ mod tests {
 
     #[test]
     fn combine_currency__zero_and_zero__returns_zero() -> Result<()> {
-        let combined = expect_ok!(combine_currency(Currency::Zero, Currency::Zero));
-        expect_eq!(combined, Currency::Zero);
+        let combined = expect_ok!(combine_currency(Currency::ZeroNone, Currency::ZeroNone));
+        expect_eq!(combined, Currency::ZeroNone);
         Ok(())
     }
 
     #[test]
     fn combine_currency__zero_and_usd__returns_usd() -> Result<()> {
-        let combined = expect_ok!(combine_currency(Currency::Zero, Currency::USD));
+        let combined = expect_ok!(combine_currency(Currency::ZeroNone, Currency::USD));
         expect_eq!(combined, Currency::USD);
         Ok(())
     }
 
     #[test]
     fn combine_currency__usd_and_zero__returns_usd() -> Result<()> {
-        let combined = expect_ok!(combine_currency(Currency::USD, Currency::Zero));
+        let combined = expect_ok!(combine_currency(Currency::USD, Currency::ZeroNone));
         expect_eq!(combined, Currency::USD);
         Ok(())
     }

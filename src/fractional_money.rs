@@ -19,9 +19,9 @@ pub struct FractionalMoney {
 
 impl FractionalMoney {
     /// Creates a new fractional amount of the given currency. The only restriction is that `amount`
-    /// must be zero if currency is `Zero`.
+    /// must be zero if currency is `ZeroNone`.
     pub fn new(amount: Decimal, currency: Currency) -> Result<Self, Error> {
-        if let Currency::Zero = currency {
+        if let Currency::ZeroNone = currency {
             return if amount.is_zero() {
                 Ok(Self::default())
             } else {
@@ -51,7 +51,7 @@ impl FractionalMoney {
         //   `(dec!(0) + dec!(0.00)).to_string() == "0.00"
         //   `(dec!(0.00) + dec!(0)).to_string() == "0"
         //   `(dec!(1.50) + dec!(0)).to_string() == "1.50"
-        // This only becomes an issue when adding or subtracting the `Zero` currency, since it has
+        // This becomes an issue when adding or subtracting the `ZeroNone` currency, since it has
         // zero decimal places, and when we are only using FractionalMoney as the inner value for
         // Money, which we assume is scaled to the max for the given currency. Thus, we explicitly
         // retain the max scale of the operands.
@@ -110,7 +110,7 @@ impl Default for FractionalMoney {
     fn default() -> Self {
         Self {
             amount: Decimal::default(),
-            currency: Currency::Zero,
+            currency: Currency::ZeroNone,
         }
     }
 }
@@ -188,7 +188,7 @@ impl Neg for FractionalMoney {
     }
 }
 
-/// If the iterator is empty, then the special `Zero` currency will be the result.
+/// If the iterator is empty, then the special `ZeroNone` currency will be the result.
 impl iter::Sum for FractionalMoney {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Default::default(), Add::add)

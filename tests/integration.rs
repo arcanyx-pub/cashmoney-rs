@@ -63,7 +63,7 @@ fn money_ops() -> Result<()> {
 #[test]
 fn special_zero_currency() -> Result<()> {
     let mut a = Money::default();
-    expect_eq!(a.currency(), Currency::Zero);
+    expect_eq!(a.currency(), Currency::ZeroNone);
     expect_eq!(a.amount(), dec!(0));
     expect_eq!((a * dec!(2)).round(), Money::default());
 
@@ -80,7 +80,7 @@ fn special_zero_currency() -> Result<()> {
     let sum: Money = v.into_iter().sum();
 
     expect_eq!(sum.amount(), dec!(0));
-    expect_eq!(sum.currency(), Currency::Zero);
+    expect_eq!(sum.currency(), Currency::ZeroNone);
 
     Ok(())
 }
