@@ -59,6 +59,28 @@ impl Money {
             money: self.money.try_subtract(&rhs.money)?,
         })
     }
+
+    /// Returns true if the `amount` is zero, regardless of currency.
+    pub fn is_zero(&self) -> bool {
+        self.money.is_zero()
+    }
+
+    /// Returns true if `amount` > 0.
+    pub fn is_positive(&self) -> bool {
+        self.money.is_positive()
+    }
+
+    /// Returns true if `amount` < 0.
+    pub fn is_negative(&self) -> bool {
+        self.money.is_negative()
+    }
+
+    /// Creates a zero-valued `FractionalMoney` with `ZeroNone` currency.
+    pub fn zero() -> Self {
+        Self {
+            money: FractionalMoney::zero(),
+        }
+    }
 }
 
 impl From<Money> for FractionalMoney {
@@ -195,7 +217,7 @@ mod tests {
     #[test]
     fn new__zero__with_non_zero_amount__fails() -> Result<()> {
         let err = expect_err!(Money::new(dec!(0.01), Currency::ZeroNone));
-        expect!(matches!(err, Error::ZeroCurrencyWithNonZeroAmount));
+        expect_eq!(err, Error::ZeroCurrencyWithNonZeroAmount);
         Ok(())
     }
 
@@ -322,6 +344,84 @@ mod tests {
         expect_eq!(usd!(1) + usd!(-2.99), usd!(-1.99));
 
         expect_eq!(cad!(1) + cad!(-1), cad!(0));
+        Ok(())
+    }
+
+    #[test]
+    fn zero__creates_zero_none_money() -> Result<()> {
+        let zero = Money::zero();
+        expect_eq!(zero.currency(), Currency::ZeroNone);
+        expect!(zero.amount().is_zero());
+        Ok(())
+    }
+
+    #[test]
+    fn is_zero__zero_none_currency() -> Result<()> {
+        expect_eq!(Money::zero().is_zero(), true);
+        Ok(())
+    }
+
+    #[test]
+    fn is_zero__zero_usd() -> Result<()> {
+        expect_eq!(usd!(0).is_zero(), true);
+        expect_eq!(usd!(0.00).is_zero(), true);
+        Ok(())
+    }
+
+    #[test]
+    fn is_zero__non_zero_usd() -> Result<()> {
+        expect_eq!(usd!(0.01).is_zero(), false);
+        expect_eq!(usd!(-0.01).is_zero(), false);
+        Ok(())
+    }
+
+    #[test]
+    fn is_positive__zero_none_currency() -> Result<()> {
+        expect_eq!(Money::zero().is_positive(), false);
+        Ok(())
+    }
+
+    #[test]
+    fn is_positive__zero_usd() -> Result<()> {
+        expect_eq!(usd!(0).is_positive(), false);
+        expect_eq!(usd!(0.00).is_positive(), false);
+        Ok(())
+    }
+
+    #[test]
+    fn is_positive__positive_usd() -> Result<()> {
+        expect_eq!(usd!(0.01).is_positive(), true);
+        Ok(())
+    }
+
+    #[test]
+    fn is_positive__negative_usd() -> Result<()> {
+        expect_eq!(usd!(-0.01).is_positive(), false);
+        Ok(())
+    }
+
+    #[test]
+    fn is_negative__zero_none_currency() -> Result<()> {
+        expect_eq!(Money::zero().is_negative(), false);
+        Ok(())
+    }
+
+    #[test]
+    fn is_negative__zero_usd() -> Result<()> {
+        expect_eq!(usd!(0).is_negative(), false);
+        expect_eq!(usd!(0.00).is_negative(), false);
+        Ok(())
+    }
+
+    #[test]
+    fn is_negative__positive_usd() -> Result<()> {
+        expect_eq!(usd!(0.01).is_negative(), false);
+        Ok(())
+    }
+
+    #[test]
+    fn is_negative__negative_usd() -> Result<()> {
+        expect_eq!(usd!(-0.01).is_negative(), true);
         Ok(())
     }
 
