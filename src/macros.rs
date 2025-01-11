@@ -16,7 +16,7 @@ macro_rules! cad {
     }};
 }
 
-/// Creates 0-valued money with the special `Zero` currency.
+/// Creates 0-valued money with the special `ZeroNone` currency.
 #[macro_export]
 macro_rules! zero {
     () => {{
@@ -79,10 +79,10 @@ mod tests {
     }
 
     #[test]
-    fn zero() -> Result<()> {
+    fn zero_none() -> Result<()> {
         let z = zero!();
         expect_eq!(z.amount(), dec!(0));
-        expect_eq!(z.currency(), Currency::Zero);
+        expect_eq!(z.currency(), Currency::ZeroNone);
         Ok(())
     }
 }

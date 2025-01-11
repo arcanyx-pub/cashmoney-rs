@@ -19,7 +19,7 @@ impl Money {
     /// Creates a new, validated, normalized monetary value. The given decimal must be a valid
     /// representation for the given currency, or else an InvalidMoneyValue error will be returned.
     ///
-    /// If `currency` is `Currency::Zero`, then `amount` must be zero.
+    /// If `currency` is `Currency::ZeroNone`, then `amount` must be zero.
     pub fn new(amount: Decimal, currency: Currency) -> Result<Self, Error> {
         let normed_amt = validate_and_normalize(amount, currency)?;
 
@@ -69,7 +69,7 @@ impl From<Money> for FractionalMoney {
 
 impl Display for Money {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if self.currency() == Currency::Zero {
+        if self.currency() == Currency::ZeroNone {
             write!(f, "0")
         } else {
             write!(f, "{} {:?}", self.money.amount(), self.money.currency())
@@ -129,7 +129,7 @@ impl Neg for Money {
     }
 }
 
-/// If the iterator is empty, then the special `Zero` currency will be the result.
+/// If the iterator is empty, then the special `ZeroNone` currency will be the result.
 impl iter::Sum for Money {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Default::default(), Add::add)
@@ -150,7 +150,7 @@ impl PartialOrd for Money {
 
 fn validate_and_normalize(amt: Decimal, currency: Currency) -> Result<Decimal, Error> {
     match currency {
-        Currency::Zero => {
+        Currency::ZeroNone => {
             if amt.is_zero() {
                 Ok(Decimal::default())
             } else {
@@ -186,7 +186,7 @@ mod tests {
 
     #[test]
     fn new__zero__with_zero_amount() -> Result<()> {
-        let a = expect_ok!(Money::new(dec!(0.00), Currency::Zero));
+        let a = expect_ok!(Money::new(dec!(0.00), Currency::ZeroNone));
         expect_eq!(a.to_string(), "0");
         expect_eq!(a.amount().to_string(), "0");
         Ok(())
@@ -194,14 +194,14 @@ mod tests {
 
     #[test]
     fn new__zero__with_non_zero_amount__fails() -> Result<()> {
-        let err = expect_err!(Money::new(dec!(0.01), Currency::Zero));
+        let err = expect_err!(Money::new(dec!(0.01), Currency::ZeroNone));
         expect!(matches!(err, Error::ZeroCurrencyWithNonZeroAmount));
         Ok(())
     }
 
     #[test]
     fn new__zero__equals_default() -> Result<()> {
-        let a = expect_ok!(Money::new(dec!(0.00), Currency::Zero));
+        let a = expect_ok!(Money::new(dec!(0.00), Currency::ZeroNone));
         expect_eq!(a, Money::default());
         Ok(())
     }
