@@ -19,7 +19,7 @@ impl Money {
     /// Creates a new, validated, normalized monetary value. The given decimal must be a valid
     /// representation for the given currency, or else an InvalidMoneyValue error will be returned.
     ///
-    /// `currency` cannot be `Currency::Zero`; you should instead specify a real currency.
+    /// If `currency` is `Currency::Zero`, then `amount` must be zero.
     pub fn new(amount: Decimal, currency: Currency) -> Result<Self, Error> {
         let normed_amt = validate_and_normalize(amount, currency)?;
 
@@ -69,7 +69,11 @@ impl From<Money> for FractionalMoney {
 
 impl Display for Money {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {:?}", self.money.amount(), self.money.currency())
+        if self.currency() == Currency::Zero {
+            write!(f, "0")
+        } else {
+            write!(f, "{} {:?}", self.money.amount(), self.money.currency())
+        }
     }
 }
 
@@ -146,7 +150,13 @@ impl PartialOrd for Money {
 
 fn validate_and_normalize(amt: Decimal, currency: Currency) -> Result<Decimal, Error> {
     match currency {
-        Currency::Zero => Err(Error::ZeroCurrencyUsedUnnecessarily),
+        Currency::Zero => {
+            if amt.is_zero() {
+                Ok(Decimal::default())
+            } else {
+                Err(Error::ZeroCurrencyWithNonZeroAmount)
+            }
+        }
         Currency::USD | Currency::CAD => {
             let scale = amt.scale();
             // We don't allow scale=1 since it is unconventional and likely indicates the calling
@@ -173,6 +183,28 @@ mod tests {
     use anyhow::Result;
     use expecting::*;
     use rust_decimal_macros::dec;
+
+    #[test]
+    fn new__zero__with_zero_amount() -> Result<()> {
+        let a = expect_ok!(Money::new(dec!(0.00), Currency::Zero));
+        expect_eq!(a.to_string(), "0");
+        expect_eq!(a.amount().to_string(), "0");
+        Ok(())
+    }
+
+    #[test]
+    fn new__zero__with_non_zero_amount__fails() -> Result<()> {
+        let err = expect_err!(Money::new(dec!(0.01), Currency::Zero));
+        expect!(matches!(err, Error::ZeroCurrencyWithNonZeroAmount));
+        Ok(())
+    }
+
+    #[test]
+    fn new__zero__equals_default() -> Result<()> {
+        let a = expect_ok!(Money::new(dec!(0.00), Currency::Zero));
+        expect_eq!(a, Money::default());
+        Ok(())
+    }
 
     #[test]
     fn new__usd__2_decimals() -> Result<()> {

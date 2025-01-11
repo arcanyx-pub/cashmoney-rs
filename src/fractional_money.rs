@@ -18,11 +18,15 @@ pub struct FractionalMoney {
 }
 
 impl FractionalMoney {
-    /// Creates a new fractional amount of the given currency. The only restriction is that currency
-    /// cannot be `Zero`.
+    /// Creates a new fractional amount of the given currency. The only restriction is that `amount`
+    /// must be zero if currency is `Zero`.
     pub fn new(amount: Decimal, currency: Currency) -> Result<Self, Error> {
         if let Currency::Zero = currency {
-            return Err(Error::ZeroCurrencyUsedUnnecessarily);
+            return if amount.is_zero() {
+                Ok(Self::default())
+            } else {
+                Err(Error::ZeroCurrencyWithNonZeroAmount)
+            };
         }
         Ok(Self { amount, currency })
     }
