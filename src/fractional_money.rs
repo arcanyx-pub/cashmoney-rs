@@ -102,6 +102,26 @@ impl FractionalMoney {
             currency: self.currency,
         })
     }
+
+    /// Returns true if the `amount` is zero, regardless of currency.
+    pub fn is_zero(&self) -> bool {
+        self.amount.is_zero()
+    }
+
+    /// Returns true if `amount` > 0.
+    pub fn is_positive(&self) -> bool {
+        self.amount.is_sign_positive() && !self.amount.is_zero()
+    }
+
+    /// Returns true if `amount` < 0.
+    pub fn is_negative(&self) -> bool {
+        self.amount.is_sign_negative() && !self.amount.is_zero()
+    }
+
+    /// Creates a zero-valued `FractionalMoney` with `ZeroNone` currency.
+    pub fn zero() -> Self {
+        Self::default()
+    }
 }
 
 /// Implementing `Default` is useful for summing iterators and other cases where a default
